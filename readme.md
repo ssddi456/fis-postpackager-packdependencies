@@ -1,0 +1,41 @@
+# fis-postpackager-packdependencies
+
+用于自动打包页面零散资源和应用打包资源的[FIS](https://github.com/fex-team/fis/)插件
+
+## 功能
+
+ - 自动将指定文件及其依赖合并成一个文件
+
+## 用法
+
+    $ npm install -g fis-postpackager-packdependencies
+    $ vi path/to/project/fis-conf.js #编辑项目配置文件
+
+```javascript
+//file : path/to/project/fis-conf.js
+//使用packdependencies插件，自动应用pack的资源引用
+fis.config.set('modules.postpackager', 'packdependencies');
+//手动指定需要打包的入口文件
+fis.config.set('settings.postpackager.packdependencies', {
+   entrances : [
+      // your entrances goes here
+   ]
+});
+```
+
+## 自动打包处理策略
+
+## 配置项
+
+### entrances
+
+需要将其依赖一起打包的文件
+
+### output
+
+合成文件输出路径，默认值 "pkg/packdependencies_${hash}"
+
+
+## 适应范围
+
+用于减少创建bundle时写的一堆配置
