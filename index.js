@@ -249,73 +249,91 @@ function getCharset(file) {
 }
 
 
+function file_deploy_path_check ( ret ) {
+    var release_map = {};
+    [ret.map.res, ret.map.pkg].forEach(function( map ) {
+        fis.util.map(map, function( subpath, info ) {
+            if( info.uri ){
+                if( release_map[info.uri] != undefined ){
+                    throw new Error('release path conflict : \n' 
+                                        + release_map[info.uri]  + '\n'
+                                        + 'and\n'
+                                        + subpath + '\n'
+                                        + 'should not publish to the same path ' + info.uri );
+                } else {
+                    release_map[info.uri] = subpath;
+                }
+            }
+        });
+    });
+}
 
 module.exports = function (ret, conf, settings, opt) { //打包后处理
-    if (!opt.pack) {
-        return;
-    }
+    if (opt.pack) {
 
+        settings = fis.util.merge(fis.util.clone(defaultSetting), settings);
 
-    settings = fis.util.merge(fis.util.clone(defaultSetting), settings);
+        var pathMap = getResourcePathMap(ret, conf, settings, opt);
+        ret.packMap = getPackMap(ret, conf, settings, opt);
+        // autoCombine模式下，autoReflow必为真
+        if (settings.autoCombine) {
+            settings.autoReflow = true;
+        }
 
-    var pathMap = getResourcePathMap(ret, conf, settings, opt);
-    ret.packMap = getPackMap(ret, conf, settings, opt);
-    // autoCombine模式下，autoReflow必为真
-    if (settings.autoCombine) {
-        settings.autoReflow = true;
-    }
+        var entrances = settings.entrances;
 
-    var entrances = settings.entrances;
-
-    if( !entrances || !entrances.length ){
-        fis.log.warning('option entrances must be set');
-        return;
-    }
-
-
-    var project_path = fis.project.getProjectPath();
-    entrances.forEach(function( entrance, idx ) {
-        var file = fis.file( project_path, entrance );
-        if( !file.exists() ){
-            fis.log.warning('entrance file : ' + entrance + ' does not exists');
+        if( !entrances || !entrances.length ){
+            fis.log.warning('option entrances must be set');
             return;
         }
 
-        if (file.useCompile 
-            && ( file.isCssLike || file.isJsLike )
-            && file.noMapJs !== false
 
-        ) { // 类html文件
-            var fileExt;
-            var dependencies = [];
-            var content = [];
-
-            if( file.isCssLike ){
-                fileExt = 'css';
-            } else {
-                fileExt = 'js';
+        var project_path = fis.project.getProjectPath();
+        entrances.forEach(function( entrance, idx ) {
+            var file = fis.file( project_path, entrance );
+            if( !file.exists() ){
+                fis.log.warning('entrance file : ' + entrance + ' does not exists');
+                return;
             }
 
-            var has = [file.getId()].concat(dependencies);
-            var subpath = settings.output
-                            .replace('${index}', idx)
-                            .replace('${hash}', 
-                                fis.util.md5(stable(has).join(','), 5)) + '.' + fileExt;
+            if (file.useCompile 
+                && ( file.isCssLike || file.isJsLike )
+                && file.noMapJs !== false
 
-            var packed_file = fis.file(project_path, subpath);
-            var id = 'packdependencies_' + idx;
-            ret.map.pkg[id] = {
-                uri: packed_file.getUrl(opt.hash, opt.domain),
-                type: fileExt,
-                has: has
-            };
+            ) { // 类html文件
+                var fileExt;
+                var dependencies = [];
+                var content = [];
 
-            packed_file.setContent(content.join('\n'));
+                if( file.isCssLike ){
+                    fileExt = 'css';
+                } else {
+                    fileExt = 'js';
+                }
 
-            ret.pkg[packed_file.subpath] = packed_file;
-        } else {
-            fis.log.warning('entrance file : ' + entrance + ' does not match build condition');
-        }
-    });
+                var has = [file.getId()].concat(dependencies);
+                var subpath = settings.output
+                                .replace('${index}', idx)
+                                .replace('${hash}', 
+                                    fis.util.md5(stable(has).join(','), 5)) + '.' + fileExt;
 
+                var packed_file = fis.file(project_path, subpath);
+                var id = 'packdependencies_' + idx;
+                ret.map.pkg[id] = {
+                    uri: packed_file.getUrl(opt.hash, opt.domain),
+                    type: fileExt,
+                    has: has
+                };
+
+                packed_file.setContent(content.join('\n'));
+
+                ret.pkg[packed_file.subpath] = packed_file;
+
+            } else {
+                fis.log.warning('entrance file : ' + entrance + ' does not match build condition');
+            }
+        });
+    }
+
+    file_deploy_path_check(ret);
 };
