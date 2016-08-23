@@ -269,6 +269,15 @@ function file_deploy_path_check ( ret ) {
 }
 
 module.exports = function (ret, conf, settings, opt) { //打包后处理
+    var map = ret.map;
+
+    var src = ret.src;
+    var pkg = ret.pkg;
+
+    var res = map.res;
+
+    var mpkg = map.pkg;
+
     if (opt.pack) {
 
         settings = fis.util.merge(fis.util.clone(defaultSetting), settings);
@@ -288,6 +297,15 @@ module.exports = function (ret, conf, settings, opt) { //打包后处理
         }
 
 
+        function walk_dep_tree(cur_node, add_to_deps) {
+            if(cur_node && cur_node.deps){
+                cur_node.deps.forEach(function( dep ) {
+                    add_to_deps(dep);
+                    walk_dep_tree(res[dep], add_to_deps);
+                });
+            }
+        }
+
         var project_path = fis.project.getProjectPath();
         entrances.forEach(function( entrance, idx ) {
             var file = fis.file( project_path, entrance );
@@ -300,10 +318,23 @@ module.exports = function (ret, conf, settings, opt) { //打包后处理
                 && ( file.isCssLike || file.isJsLike )
                 && file.noMapJs !== false
 
-            ) { // 类html文件
+            ) { 
+
+
                 var fileExt;
-                var dependencies = [];
                 var content = [];
+
+                var dependencies = {};
+                function add_to_deps(k) {
+                    dependencies[k] = 1;
+                }
+
+                walk_dep_tree(file, add_to_deps);
+                var entrance_id = file.getId();
+                var has = [entrance_id].concat(Object.keys(dependencies));
+                // 这里假定无须手动处理依赖顺序
+                var content = []; 
+                var pkg_id = 'packdependencies_' + idx;
 
                 if( file.isCssLike ){
                     fileExt = 'css';
@@ -311,15 +342,46 @@ module.exports = function (ret, conf, settings, opt) { //打包后处理
                     fileExt = 'js';
                 }
 
-                var has = [file.getId()].concat(dependencies);
+                has.reverse().forEach(function( id ) {
+                    var dep_file = src[id];
+                    var dep_info = res[id];
+                    if(!dep_file){
+                        fis.log.warning('[packdependencies] dep id: ' + id + ' cannot be found with entrance :' + entrance_id);
+                        return;
+                    }
+
+                    if( dep_info.pkg ){
+                        fis.log.warning('[packdependencies] dep id: ' + id + ' has pkg : ' + dep_info.pkg + ' skip');
+                        return;
+                    } else if( dep_file.isCssLike != file.isCssLike || dep_file.isJsLike != file.isJsLike ){
+                        fis.log.warning('[packdependencies] dep id: ' + id 
+                                        + ' attr ( ' + JSON.stringify({ 
+                                                    isCssLike : dep_file.isCssLike,
+                                                    isJsLike : dep_file.isJsLike 
+                                                }) + ') '
+                                        + ' is not like entrance : ' + entrance_id + ' '
+                                        + ' attr ( ' + JSON.stringify({ 
+                                                    isCssLike : file.isCssLike,
+                                                    isJsLike : file.isJsLike 
+                                                }) + ') ');
+                        return;
+                    } else {
+                        dep_info.pkg = pkg_id;
+                    }
+
+                    
+
+                    content.push( dep_file.getContent() ); 
+                });
+
+
                 var subpath = settings.output
                                 .replace('${index}', idx)
                                 .replace('${hash}', 
                                     fis.util.md5(stable(has).join(','), 5)) + '.' + fileExt;
 
                 var packed_file = fis.file(project_path, subpath);
-                var id = 'packdependencies_' + idx;
-                ret.map.pkg[id] = {
+                mpkg[pkg_id] = {
                     uri: packed_file.getUrl(opt.hash, opt.domain),
                     type: fileExt,
                     has: has
@@ -327,7 +389,7 @@ module.exports = function (ret, conf, settings, opt) { //打包后处理
 
                 packed_file.setContent(content.join('\n'));
 
-                ret.pkg[packed_file.subpath] = packed_file;
+                pkg[packed_file.subpath] = packed_file;
 
             } else {
                 fis.log.warning('entrance file : ' + entrance + ' does not match build condition');
