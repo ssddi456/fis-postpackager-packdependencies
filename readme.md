@@ -38,4 +38,6 @@ fis.config.set('settings.postpackager.packdependencies', {
 
 ## 适应范围
 
-用于减少创建bundle时写的一堆配置
+用于减少创建bundle时写的一堆配置.
+
+为了减少文件合并顺序导致的麻烦，请正确的配置```fis-postprocesser-jswraper```, 推荐```type:"amd"```，让加载器为你解决问题。
