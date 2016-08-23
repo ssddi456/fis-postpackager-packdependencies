@@ -307,6 +307,18 @@ module.exports = function (ret, conf, settings, opt) { //打包后处理
         }
 
         var project_path = fis.project.getProjectPath();
+
+        var id_to_subpath_map = {};
+
+        Object.keys(src).forEach(function( subpath ) {
+            id_to_subpath_map[ src[subpath].getId() ] = subpath;
+        });
+
+        function id_to_subpath ( id ) {
+            return id_to_subpath_map[id];
+        };
+
+
         entrances.forEach(function( entrance, idx ) {
             var file = fis.file( project_path, entrance );
             if( !file.exists() ){
@@ -325,13 +337,17 @@ module.exports = function (ret, conf, settings, opt) { //打包后处理
                 var content = [];
 
                 var dependencies = {};
+                var entrance_id = file.getId();
+
+                dependencies[entrance_id] = 1;
                 function add_to_deps(k) {
                     dependencies[k] = 1;
                 }
 
-                walk_dep_tree(file, add_to_deps);
-                var entrance_id = file.getId();
-                var has = [entrance_id].concat(Object.keys(dependencies));
+                walk_dep_tree(res[entrance_id], add_to_deps);
+
+                var has = Object.keys(dependencies);
+
                 // 这里假定无须手动处理依赖顺序
                 var content = []; 
                 var pkg_id = 'packdependencies_' + idx;
@@ -342,8 +358,9 @@ module.exports = function (ret, conf, settings, opt) { //打包后处理
                     fileExt = 'js';
                 }
 
+
                 has.reverse().forEach(function( id ) {
-                    var dep_file = src[id];
+                    var dep_file = src[id_to_subpath(id)];
                     var dep_info = res[id];
                     if(!dep_file){
                         fis.log.warning('[packdependencies] dep id: ' + id + ' cannot be found with entrance :' + entrance_id);
