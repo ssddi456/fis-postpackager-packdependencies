@@ -90,7 +90,7 @@ module.exports = function (ret, conf, settings, opt) { //打包后处理
         entrances.forEach(function( entrance, idx ) {
             var file = fis.file( project_path, entrance );
             if( !file.exists() ){
-                fis.log.warning('entrance file : ' + entrance + ' does not exists');
+                fis.log.warning('[packdependencies] entrance file : ' + entrance + ' does not exists');
                 return;
             }
 
@@ -127,7 +127,7 @@ module.exports = function (ret, conf, settings, opt) { //打包后处理
                 }
 
 
-                has.reverse().forEach(function( id ) {
+                has = has.reverse().filter(function( id ) {
                     var dep_file = src[id_to_subpath(id)];
                     var dep_info = res[id];
                     if(!dep_file){
@@ -140,15 +140,16 @@ module.exports = function (ret, conf, settings, opt) { //打包后处理
                         return;
                     } else if( dep_file.isCssLike != file.isCssLike || dep_file.isJsLike != file.isJsLike ){
                         fis.log.warning('[packdependencies] dep id: ' + id 
-                                        + ' attr ( ' + JSON.stringify({ 
-                                                    isCssLike : dep_file.isCssLike,
-                                                    isJsLike : dep_file.isJsLike 
-                                                }) + ') '
-                                        + ' is not like entrance : ' + entrance_id + ' '
-                                        + ' attr ( ' + JSON.stringify({ 
-                                                    isCssLike : file.isCssLike,
-                                                    isJsLike : file.isJsLike 
-                                                }) + ') ');
+                                        + ' ' + JSON.stringify({ 
+                                                isCssLike : dep_file.isCssLike,
+                                                isJsLike : dep_file.isJsLike 
+                                            }) + '\n'
+                                        + ' is not the same as entrance : ' + entrance_id + ' '
+                                        + ' ' + JSON.stringify({ 
+                                                isCssLike : file.isCssLike,
+                                                isJsLike : file.isJsLike 
+                                            }) + '\n' 
+                                        + ' this file will not pack together');
                         return;
                     } else {
                         dep_info.pkg = pkg_id;
@@ -167,6 +168,7 @@ module.exports = function (ret, conf, settings, opt) { //打包后处理
                     
 
                     content.push( sub_content ); 
+                    return true;
                 });
 
 
