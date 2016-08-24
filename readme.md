@@ -4,7 +4,9 @@
 
 ## 功能
 
- - 自动将指定文件及其依赖合并成一个文件
+ - 自动将指定文件及其依赖合并成package
+ - 按类型打包，同名依赖的文件会被
+ - 
 
 ## 用法
 
@@ -18,7 +20,16 @@ fis.config.set('modules.postpackager', 'packdependencies');
 //手动指定需要打包的入口文件
 fis.config.set('settings.postpackager.packdependencies', {
    entrances : [
-      // your entrances goes here
+      //
+      //  your entrances goes here
+      // "file path relative to project root" 
+      // or
+      // { 
+      //   file : "file path relative to project root", 
+      //   // 是否打包同名依赖的文件，默认为真
+      //   pack_siblings : boolean /* default to true */ 
+      // }
+      //
    ]
 });
 ```
