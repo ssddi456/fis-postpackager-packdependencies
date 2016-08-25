@@ -66,7 +66,7 @@ module.exports = function (ret, conf, settings, opt) { //打包后处理
         }
 
 
-        function walk_dep_tree(cur_node, add_to_deps) {
+        var walk_dep_tree = function (cur_node, add_to_deps) {
             if(cur_node && cur_node.deps){
                 cur_node.deps.forEach(function( dep ) {
                     add_to_deps(dep);
