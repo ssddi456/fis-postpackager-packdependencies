@@ -207,13 +207,14 @@ module.exports = function (ret, conf, settings, opt) { //打包后处理
                                         fis.util.md5(stable(pack.has).join(','), 5)) + '.' + pack.fileExt;
 
                     var packed_file = fis.file(project_path, subpath);
+                    packed_file.setContent(pack.content.join('\n'));
+
                     mpkg[pack.pkg_id] = {
                         uri: packed_file.getUrl(opt.hash, opt.domain),
                         type: pack.fileExt,
                         has: pack.has
                     };
 
-                    packed_file.setContent(pack.content.join('\n'));
 
                     pkg[subpath] = packed_file;
                 }
