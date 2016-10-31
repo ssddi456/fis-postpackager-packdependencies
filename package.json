@@ -2,7 +2,7 @@
   "name": "fis-postpackager-packdependencies", 
   "license": "ISC", 
   "author": "", 
-  "version": "1.0.4", 
+  "version": "1.0.5", 
   "dependencies": {
     "stable": "~0.1.5"
   }, 

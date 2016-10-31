@@ -198,6 +198,9 @@ module.exports = function (ret, conf, settings, opt) { //打包后处理
                 
                 var create_package = function( pack ) {
                     if( pack.has.length <= 1 ){
+                        // rollback res_info's pkg record
+                        delete res[pack.has[0]].pkg;
+
                         return;
                     }
 
